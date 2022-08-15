@@ -1,15 +1,21 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
+import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { RandomWallet } from './types';
+import { Wallet } from './entities/wallet.entity';
 
 @Controller()
+@ApiTags('Wallets')
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get('create-wallet')
-  async createWallet(): Promise<RandomWallet> {
+  @Post('create-wallet')
+  @ApiCreatedResponse({
+    type: Wallet,
+    description: 'A newly created wallet',
+  })
+  async createWallet(): Promise<Wallet> {
     const wallet = await this.appService.createRandomWallet();
-    await this.appService.saveWallet(wallet);
-    return wallet;
+    const createdWallet = this.appService.saveWallet(wallet);
+    return createdWallet;
   }
 }

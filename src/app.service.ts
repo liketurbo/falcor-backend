@@ -25,6 +25,8 @@ export class AppService {
   }
 
   async saveWallet(wallet: RandomWallet) {
-    return this.walletsRepository.insert(wallet);
+    const createdWallet = this.walletsRepository.create(wallet);
+    await this.walletsRepository.save(createdWallet);
+    return createdWallet;
   }
 }
