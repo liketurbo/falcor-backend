@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
@@ -16,7 +17,7 @@ describe('AppController', () => {
   let dbConnection: DataSource;
   let walletRepository: Repository<Wallet>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const app: TestingModule = await Test.createTestingModule({
       imports: [EthersModule.forRoot(), DatabaseModule],
       controllers: [AppController],
@@ -28,7 +29,7 @@ describe('AppController', () => {
     dbConnection = app.get<DataSource>(DATA_SOURCE);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await dbConnection.destroy();
   });
 
@@ -38,25 +39,56 @@ describe('AppController', () => {
     expect(dbConnection).toBeDefined();
   });
 
-  describe('root', () => {
-    it('should create a wallet', async () => {
-      const createdWallet = await appController.createWallet();
+  it('should create a wallet', async () => {
+    const createdWallet = await appController.createWallet();
 
-      expect(createdWallet).toMatchObject({
-        address: expect.stringMatching(/^0x[a-fA-F0-9]{40}$/),
-        pubkey: expect.stringMatching(/^0x[a-fA-F0-9]{130}$/),
-        mnemonic: expect.stringMatching(/^(\b\w+\b\s?){12}$/),
-      });
-
-      const foundWallet = await walletRepository.findOneBy({
-        address: createdWallet.address,
-        pubkey: createdWallet.pubkey,
-        mnemonic: createdWallet.mnemonic,
-      });
-
-      expect(foundWallet).toBeTruthy();
-      expect(foundWallet.balance).toBe(0);
-      expect(foundWallet.createdAt).toBeInstanceOf(Date);
+    expect(createdWallet).toMatchObject({
+      address: expect.stringMatching(/^0x[a-fA-F0-9]{40}$/),
+      pubkey: expect.stringMatching(/^0x[a-fA-F0-9]{130}$/),
+      mnemonic: expect.stringMatching(/^(\b\w+\b\s?){12}$/),
     });
+
+    const foundWallet = await walletRepository.findOneBy({
+      address: createdWallet.address,
+      pubkey: createdWallet.pubkey,
+      mnemonic: createdWallet.mnemonic,
+    });
+
+    expect(foundWallet).toBeTruthy();
+    expect(foundWallet.balance).toBe(0);
+    expect(foundWallet.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('should fail cause of inefficient balance', async () => {
+    const createdWallet = await appController.createWallet();
+    await expect(
+      appController.send({
+        amount: 5,
+        from: createdWallet.address,
+        to: createdWallet.address,
+      }),
+    ).rejects.toEqual(new ForbiddenException('Inefficient balance'));
+  });
+
+  it("should fail cause of cause sender wallet doesn't exist", async () => {
+    const createdWallet = await appController.createWallet();
+    await expect(
+      appController.send({
+        amount: 5,
+        from: 'createdWallet.address',
+        to: createdWallet.address,
+      }),
+    ).rejects.toEqual(new ForbiddenException('Wallet not exists'));
+  });
+
+  it("should fail cause of cause receiver wallet doesn't exist", async () => {
+    const createdWallet = await appController.createWallet();
+    await expect(
+      appController.send({
+        amount: 5,
+        from: createdWallet.address,
+        to: 'createdWallet.address',
+      }),
+    ).rejects.toEqual(new ForbiddenException('Wallet not exists'));
   });
 });

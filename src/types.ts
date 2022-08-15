@@ -1,3 +1,4 @@
+import serviceWalletsConfig from './config/service-wallets.config';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
@@ -8,5 +9,7 @@ export interface RandomWallet {
   pubkey: string;
   mnemonic: string;
 }
+
+export type ServiceWalletsVariables = ReturnType<typeof serviceWalletsConfig>;
 
 export type WalletType = typeof SERVICE_WALLET | typeof PERSONAL_WALLET;

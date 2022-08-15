@@ -1,7 +1,12 @@
 import { DataSource } from 'typeorm';
 import path from 'path';
 import { Wallet } from './entities/wallet.entity';
-import { DATA_SOURCE, WALLET_REPOSITORY } from './constants/db-ids.constants';
+import {
+  DATA_SOURCE,
+  TRANSACTION_REPOSITORY,
+  WALLET_REPOSITORY,
+} from './constants/db-ids.constants';
+import { Transaction } from './entities/transaction.entity';
 
 export const databaseProviders = [
   {
@@ -32,5 +37,11 @@ export const databaseProviders = [
 export const WalletProvider = {
   provide: WALLET_REPOSITORY,
   useFactory: (dataSource: DataSource) => dataSource.getRepository(Wallet),
+  inject: [DATA_SOURCE],
+};
+
+export const TransactionProvider = {
+  provide: TRANSACTION_REPOSITORY,
+  useFactory: (dataSource: DataSource) => dataSource.getRepository(Transaction),
   inject: [DATA_SOURCE],
 };
