@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { Repository } from 'typeorm';
 import { RandomWallet } from './types';
-import { Wallet as WalletEntity } from './entities/wallet.entity';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Wallet as WalletEntity } from './database/entities/wallet.entity';
+import { WALLET_REPOSITORY } from './database/constants/db-ids.constants';
 
 @Injectable()
 export class AppService {
   constructor(
     @InjectSignerProvider()
     private readonly ethersSigner: EthersSigner,
-    @InjectRepository(WalletEntity)
+    @Inject(WALLET_REPOSITORY)
     private readonly walletsRepository: Repository<WalletEntity>,
   ) {}
 

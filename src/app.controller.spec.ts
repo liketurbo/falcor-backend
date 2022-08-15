@@ -1,45 +1,41 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { EthersModule } from 'nestjs-ethers';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { Wallet } from './entities/wallet.entity';
+import {
+  DATA_SOURCE,
+  WALLET_REPOSITORY,
+} from './database/constants/db-ids.constants';
+import { DatabaseModule } from './database/database.module';
+import { WalletProvider } from './database/database.providers';
+import { Wallet } from './database/entities/wallet.entity';
 
 describe('AppController', () => {
   let appController: AppController;
+  let dbConnection: DataSource;
   let walletRepository: Repository<Wallet>;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [
-        EthersModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: 'localhost',
-          port: 5432,
-          username: 'postgres',
-          password: 'example',
-          database: 'postgres',
-          synchronize: true,
-          logging: true,
-          entities: [Wallet],
-          subscribers: [],
-          migrations: [],
-        }),
-        TypeOrmModule.forFeature([Wallet]),
-      ],
+      imports: [EthersModule.forRoot(), DatabaseModule],
       controllers: [AppController],
-      providers: [AppService],
+      providers: [WalletProvider, AppService],
     }).compile();
 
     appController = app.get<AppController>(AppController);
-    walletRepository = app.get<Repository<Wallet>>(getRepositoryToken(Wallet));
+    walletRepository = app.get<Repository<Wallet>>(WALLET_REPOSITORY);
+    dbConnection = app.get<DataSource>(DATA_SOURCE);
+  });
+
+  afterEach(async () => {
+    await dbConnection.destroy();
   });
 
   it('should be defined', () => {
     expect(appController).toBeDefined();
     expect(walletRepository).toBeDefined();
+    expect(dbConnection).toBeDefined();
   });
 
   describe('root', () => {

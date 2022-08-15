@@ -1,7 +1,7 @@
 import { Controller, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { Wallet } from './entities/wallet.entity';
+import { Wallet } from './database/entities/wallet.entity';
 
 @Controller()
 @ApiTags('Wallets')
