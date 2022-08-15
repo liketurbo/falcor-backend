@@ -20,6 +20,7 @@ describe('AppController', () => {
     it('should create a wallet', async () => {
       expect(await appController.createWallet()).toMatchObject({
         address: expect.stringMatching(/^0x[a-fA-F0-9]{40}$/),
+        pubkey: expect.stringMatching(/^0x[a-fA-F0-9]{130}$/),
         mnemonic: expect.stringMatching(/^(\b\w+\b\s?){12}$/),
       });
     });
