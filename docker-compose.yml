@@ -12,3 +12,5 @@ services:
       dockerfile: ./Dockerfile
     depends_on:
       - pg
+    ports:
+      - 3000:3000
