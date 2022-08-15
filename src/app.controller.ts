@@ -8,7 +8,8 @@ export class AppController {
 
   @Get('create-wallet')
   async createWallet(): Promise<RandomWallet> {
-    const wallet = await this.appService.createWallet();
+    const wallet = await this.appService.createRandomWallet();
+    await this.appService.saveWallet(wallet);
     return wallet;
   }
 }

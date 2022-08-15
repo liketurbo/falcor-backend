@@ -21,6 +21,7 @@ import { Wallet } from './entities/wallet.entity';
       subscribers: [],
       migrations: [],
     }),
+    TypeOrmModule.forFeature([Wallet]),
   ],
   controllers: [AppController],
   providers: [AppService],
