@@ -20,7 +20,7 @@ export class Wallet {
   @ApiProperty()
   mnemonic: string;
 
-  @Column({ default: 0 })
+  @Column({ type: 'float', default: 0 })
   @ApiProperty()
   balance: number;
 

@@ -18,7 +18,7 @@ export class Transaction {
   @Column()
   to: string;
 
-  @Column()
+  @Column({ type: 'float' })
   amount: number;
 
   @CreateDateColumn({

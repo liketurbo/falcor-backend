@@ -1,15 +1,20 @@
 import { ForbiddenException } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import serviceWalletsConfig from './config/service-wallets.config';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
 } from './database/constants/db-ids.constants';
 import { DatabaseModule } from './database/database.module';
-import { WalletProvider } from './database/database.providers';
+import {
+  TransactionProvider,
+  WalletProvider,
+} from './database/database.providers';
 import { Wallet } from './database/entities/wallet.entity';
 
 describe('AppController', () => {
@@ -19,9 +24,13 @@ describe('AppController', () => {
 
   beforeAll(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [EthersModule.forRoot(), DatabaseModule],
+      imports: [
+        EthersModule.forRoot(),
+        DatabaseModule,
+        ConfigModule.forFeature(serviceWalletsConfig),
+      ],
       controllers: [AppController],
-      providers: [WalletProvider, AppService],
+      providers: [WalletProvider, TransactionProvider, AppService],
     }).compile();
 
     appController = app.get<AppController>(AppController);
@@ -90,5 +99,26 @@ describe('AppController', () => {
         to: 'createdWallet.address',
       }),
     ).rejects.toEqual(new ForbiddenException('Wallet not exists'));
+  });
+
+  it('return 5 transactions', async () => {
+    const fromWallet = await appController.createWallet();
+    const toWallet = await appController.createWallet();
+    await walletRepository.increment(
+      {
+        address: fromWallet.address,
+      },
+      'balance',
+      10,
+    );
+    expect(
+      (
+        await appController.send({
+          amount: 10,
+          from: fromWallet.address,
+          to: toWallet.address,
+        })
+      ).length,
+    ).toBe(4);
   });
 });
