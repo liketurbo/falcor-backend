@@ -21,11 +21,11 @@ import { WalletsController } from '../wallets/wallets.controller';
 import { TransactionsController } from './transactions.controller';
 
 describe('TransactionsController', () => {
+  let authService: AuthService;
   let dbConnection: DataSource;
   let transactionsController: TransactionsController;
   let walletsController: WalletsController;
   let walletRepository: Repository<Wallet>;
-  let authService: AuthService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -39,13 +39,13 @@ describe('TransactionsController', () => {
       providers: [TransactionProvider, WalletProvider],
     }).compile();
 
+    authService = module.get(AuthService);
     dbConnection = module.get<DataSource>(DATA_SOURCE);
     transactionsController = module.get<TransactionsController>(
       TransactionsController,
     );
     walletsController = module.get<WalletsController>(WalletsController);
     walletRepository = module.get<Repository<Wallet>>(WALLET_REPOSITORY);
-    authService = module.get(AuthService);
   });
 
   afterAll(async () => {
@@ -53,11 +53,11 @@ describe('TransactionsController', () => {
   });
 
   it('should be defined', () => {
+    expect(authService).toBeDefined();
     expect(dbConnection).toBeDefined();
     expect(transactionsController).toBeDefined();
     expect(walletsController).toBeDefined();
     expect(walletRepository).toBeDefined();
-    expect(authService).toBeDefined();
   });
 
   it('should fail cause of inefficient balance', async () => {

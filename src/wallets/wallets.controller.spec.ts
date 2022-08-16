@@ -20,10 +20,10 @@ import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import { WalletsController } from './wallets.controller';
 
 describe('WalletsController', () => {
+  let authService: AuthService;
   let dbConnection: DataSource;
   let walletsController: WalletsController;
   let walletRepository: Repository<Wallet>;
-  let authService: AuthService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,10 +37,10 @@ describe('WalletsController', () => {
       providers: [WalletProvider, TransactionProvider],
     }).compile();
 
+    authService = module.get(AuthService);
     dbConnection = module.get<DataSource>(DATA_SOURCE);
     walletsController = module.get<WalletsController>(WalletsController);
     walletRepository = module.get<Repository<Wallet>>(WALLET_REPOSITORY);
-    authService = module.get(AuthService);
   });
 
   afterAll(async () => {
@@ -48,10 +48,10 @@ describe('WalletsController', () => {
   });
 
   it('should be defined', () => {
+    expect(authService).toBeDefined();
     expect(dbConnection).toBeDefined();
     expect(walletsController).toBeDefined();
     expect(walletRepository).toBeDefined();
-    expect(authService).toBeDefined();
   });
 
   it('should create a wallet', async () => {
