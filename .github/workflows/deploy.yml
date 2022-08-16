@@ -24,4 +24,6 @@ jobs:
         script: |
           mkdir -p projects
           cd projects
+          echo "$URL"
+          echo "$FOLDER"
           if [ ! -d "$FOLDER" ] ; then git clone "$URL" "$FOLDER" ; else cd "$FOLDER" ; git pull "$URL" ; fi
