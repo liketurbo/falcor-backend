@@ -1,7 +1,20 @@
-- name: executing remote ssh commands using ssh key
-  uses: appleboy/ssh-action@master
-  with:
-    host: 38.242.144.117
-    username: ${{ secrets.USERNAME }}
-    key: ${{ secrets.KEY }}
-    script: whoami
+name: Deploy Server
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: executing remote ssh commands using ssh key
+      uses: appleboy/ssh-action@master
+      with:
+        host: 38.242.144.117
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        script: whoami
