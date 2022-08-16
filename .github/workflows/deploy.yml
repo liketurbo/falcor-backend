@@ -28,4 +28,4 @@ jobs:
           if [ ! -d "$FOLDER" ] ; then git clone "$URL" "$FOLDER" ; else cd "$FOLDER" ; git pull "$URL" ; fi
           cd "$FOLDER"
           docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml up --build
+          docker compose -f docker-compose.prod.yml up --build -d
