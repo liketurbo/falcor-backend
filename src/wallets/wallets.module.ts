@@ -2,23 +2,13 @@ import { Module } from '@nestjs/common';
 import { WalletsController } from './wallets.controller';
 import { EthersModule } from 'nestjs-ethers';
 import { DatabaseModule } from '../database/database.module';
-import {
-  TransactionProvider,
-  WalletProvider,
-} from '../database/database.providers';
-import { ConfigModule } from '@nestjs/config';
-import serviceWalletsConfig from './config/service-wallets.config';
+import { WalletProvider } from '../database/database.providers';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [
-    EthersModule.forRoot(),
-    DatabaseModule,
-    ConfigModule.forFeature(serviceWalletsConfig),
-    AuthModule,
-  ],
+  imports: [AuthModule, DatabaseModule, EthersModule.forRoot()],
   controllers: [WalletsController],
-  providers: [WalletProvider, TransactionProvider, JwtStrategy],
+  providers: [JwtStrategy, WalletProvider],
 })
 export class WalletsModule {}

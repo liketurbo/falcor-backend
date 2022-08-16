@@ -1,4 +1,4 @@
-import serviceWalletsConfig from './wallets/config/service-wallets.config';
+import serviceWalletsConfig from './common/config/service-wallets.config';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
