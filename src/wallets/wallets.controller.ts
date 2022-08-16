@@ -101,7 +101,7 @@ export class WalletsController {
     };
   }
 
-  @Get('get-current')
+  @Get('current')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async getCurrent(@Request() req) {
@@ -213,7 +213,7 @@ export class WalletsController {
     return 'Ok';
   }
 
-  @Get('get-pools')
+  @Get('pools')
   @ApiOkResponse({
     type: Wallet,
     isArray: true,
