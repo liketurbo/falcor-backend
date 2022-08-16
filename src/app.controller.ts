@@ -12,7 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
-import { AppService } from './app.service';
 import {
   DATA_SOURCE,
   TRANSACTION_REPOSITORY,
@@ -32,7 +31,6 @@ export class AppController {
   private readonly logger = new Logger(AppController.name);
 
   constructor(
-    private readonly appService: AppService,
     @Inject(DATA_SOURCE)
     private readonly dbConnection: DataSource,
     @Inject(WALLET_REPOSITORY)
@@ -93,10 +91,10 @@ export class AppController {
   })
   async send(@Body() body: SendDto): Promise<Transaction[]> {
     const fromWallet = await this.walletsRepository.findOneBy({
-      address: body.from,
+      pubkey: body.from,
     });
     const toWallet = await this.walletsRepository.findOneBy({
-      address: body.to,
+      pubkey: body.to,
     });
 
     if (!(fromWallet && toWallet))
