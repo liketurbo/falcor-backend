@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Inject,
@@ -13,6 +14,11 @@ import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { STAKE_REPOSITORY } from '../database/constants/db-ids.constants';
 import { Stake } from '../database/entities/stake.entity';
+import {
+  INTERVAL_3_MONTHS,
+  INTERVAL_6_MONTHS,
+  INTERVAL_9_MONTHS,
+} from './constants/intervals.constants';
 import { CreateStakeDto } from './dto/create-stake.dto';
 
 @Controller('staking')
@@ -34,6 +40,11 @@ export class StakingController {
     @Body() { amount, period }: CreateStakeDto,
   ): Promise<string> {
     const { pubkey } = req.user;
+
+    const INTERVALS = [INTERVAL_3_MONTHS, INTERVAL_6_MONTHS, INTERVAL_9_MONTHS];
+    if (!INTERVALS.includes(period))
+      throw new BadRequestException('Invalid interval provided');
+
     const stake = this.stakeRepository.create({
       amount,
       period: parse(period),
