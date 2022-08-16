@@ -13,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import {
   ApiAcceptedResponse,
   ApiBearerAuth,
@@ -28,21 +27,22 @@ import {
   DATA_SOURCE,
   TRANSACTION_REPOSITORY,
   WALLET_REPOSITORY,
-} from './database/constants/db-ids.constants';
-import { Transaction } from './database/entities/transaction.entity';
-import { Wallet } from './database/entities/wallet.entity';
+} from '../database/constants/db-ids.constants';
+import { Transaction } from '../database/entities/transaction.entity';
+import { Wallet } from '../database/entities/wallet.entity';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { FaucetDto } from './dto/faucet.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
 import { SendDto } from './dto/send.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { ServiceWalletsVariables } from './types';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ServiceWalletsVariables } from '../types';
+import { AuthService } from '../auth/auth.service';
 
-@Controller()
-@ApiTags('Wallets')
-export class AppController {
-  private readonly logger = new Logger(AppController.name);
+@Controller('wallets')
+@ApiTags('wallets')
+export class WalletsController {
+  private readonly logger = new Logger(WalletsController.name);
 
   constructor(
     @Inject(DATA_SOURCE)
@@ -54,10 +54,10 @@ export class AppController {
     @InjectSignerProvider()
     private readonly ethersSigner: EthersSigner,
     private readonly configService: ConfigService<ServiceWalletsVariables>,
-    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
   ) {}
 
-  @Post('create-wallet')
+  @Post('create')
   @ApiCreatedResponse({
     type: CreateWalletResDto,
   })
@@ -69,13 +69,14 @@ export class AppController {
       pubkey: randomWallet.publicKey,
       keystore: await randomWallet.encrypt(password),
     });
+    const { accessToken } = this.authService.login(randomWallet.publicKey);
     return {
       mnemonic: randomWallet.mnemonic.phrase,
-      accessToken: this.jwtService.sign({ pubkey: randomWallet.publicKey }),
+      accessToken,
     };
   }
 
-  @Put('import-wallet')
+  @Put('import')
   async importWallet(@Body() { mnemonic, password }: ImportWalletReqDto) {
     const restoredWallet = this.ethersSigner.createWalletfromMnemonic(mnemonic);
 
@@ -93,22 +94,24 @@ export class AppController {
       },
     );
 
+    const { accessToken } = this.authService.login(restoredWallet.publicKey);
+
     return {
-      accessToken: this.jwtService.sign({ pubkey: restoredWallet.publicKey }),
+      accessToken,
     };
   }
 
-  @Get('get-wallet')
+  @Get('get-current')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  async getWallet(@Request() req) {
+  async getCurrent(@Request() req) {
     const { pubkey } = req.user;
     return this.walletsRepository.findOneByOrFail({
       pubkey,
     });
   }
 
-  @Post('send')
+  @Post('send-transaction')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiCreatedResponse({
@@ -210,12 +213,12 @@ export class AppController {
     return 'Ok';
   }
 
-  @Get('service-wallets')
+  @Get('get-pools')
   @ApiOkResponse({
     type: Wallet,
     isArray: true,
   })
-  async getServiceWallets() {
+  async getPools() {
     return this.walletsRepository.findBy({
       type: SERVICE_WALLET,
     });

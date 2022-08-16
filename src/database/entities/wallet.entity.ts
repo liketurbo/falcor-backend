@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
-} from '../../constants/wallet-types.constants';
+} from '../../wallets/constants/wallet-types.constants';
 import { WalletType } from '../../types';
 
 @Entity({ name: 'wallets' })

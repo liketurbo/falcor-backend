@@ -1,8 +1,8 @@
-import serviceWalletsConfig from './config/service-wallets.config';
+import serviceWalletsConfig from './wallets/config/service-wallets.config';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
-} from './constants/wallet-types.constants';
+} from './wallets/constants/wallet-types.constants';
 
 export interface RandomWallet {
   address: string;

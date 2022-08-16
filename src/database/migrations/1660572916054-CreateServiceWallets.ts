@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import serviceWalletsConfig from '../../config/service-wallets.config';
-import { SERVICE_WALLET } from '../../constants/wallet-types.constants';
+import serviceWalletsConfig from '../../wallets/config/service-wallets.config';
+import { SERVICE_WALLET } from '../../wallets/constants/wallet-types.constants';
 
 const serviceWallets = Object.entries(serviceWalletsConfig());
 
