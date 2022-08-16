@@ -6,11 +6,5 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: example
-  app:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    depends_on:
-      - pg
     ports:
-      - 3000:3000
+      - 5432:5432
