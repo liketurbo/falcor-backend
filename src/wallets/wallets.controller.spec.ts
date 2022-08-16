@@ -2,9 +2,10 @@ import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
-import { WalletsController } from './wallets.controller';
+
+import { AuthModule } from '../auth/auth.module';
+import { AuthService } from '../auth/auth.service';
 import serviceWalletsConfig from '../common/config/service-wallets.config';
-import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
@@ -15,8 +16,8 @@ import {
   WalletProvider,
 } from '../database/database.providers';
 import { Wallet } from '../database/entities/wallet.entity';
-import { AuthModule } from '../auth/auth.module';
-import { AuthService } from '../auth/auth.service';
+import { SERVICE_WALLET } from './constants/wallet-types.constants';
+import { WalletsController } from './wallets.controller';
 
 describe('WalletsController', () => {
   let dbConnection: DataSource;

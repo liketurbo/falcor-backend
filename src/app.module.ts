@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { WalletsModule } from './wallets/wallets.module';
-import { TransactionsModule } from './transactions/transactions.module';
+
 import { StakingModule } from './staking/staking.module';
+import { TransactionsModule } from './transactions/transactions.module';
+import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
   imports: [StakingModule, TransactionsModule, WalletsModule],

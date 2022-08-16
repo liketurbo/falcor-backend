@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IPostgresInterval } from 'postgres-interval';
 import {
   Column,
   CreateDateColumn,
@@ -7,7 +8,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { IPostgresInterval } from 'postgres-interval';
+
 import { Wallet } from './wallet.entity';
 
 @Entity({ name: 'stakes' })

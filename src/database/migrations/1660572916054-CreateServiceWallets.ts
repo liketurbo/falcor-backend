@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
+
 import serviceWalletsConfig from '../../common/config/service-wallets.config';
 import { SERVICE_WALLET } from '../../wallets/constants/wallet-types.constants';
 

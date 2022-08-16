@@ -18,18 +18,19 @@ import {
 } from '@nestjs/swagger';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
-import { SERVICE_WALLET } from './constants/wallet-types.constants';
+
+import { AuthService } from '../auth/auth.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
 import { Wallet } from '../database/entities/wallet.entity';
+import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { FaucetDto } from './dto/faucet.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthService } from '../auth/auth.service';
 
 @Controller('wallets')
 @ApiTags('wallets')

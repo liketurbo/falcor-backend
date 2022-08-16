@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource } from 'typeorm';
+
 import { AuthModule } from '../auth/auth.module';
 import { DATA_SOURCE } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';

@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { WalletsController } from './wallets.controller';
 import { EthersModule } from 'nestjs-ethers';
+
+import { AuthModule } from '../auth/auth.module';
+import { JwtStrategy } from '../auth/strategies/jwt.strategy';
 import { DatabaseModule } from '../database/database.module';
 import { WalletProvider } from '../database/database.providers';
-import { JwtStrategy } from '../auth/strategies/jwt.strategy';
-import { AuthModule } from '../auth/auth.module';
+import { WalletsController } from './wallets.controller';
 
 @Module({
   imports: [AuthModule, DatabaseModule, EthersModule.forRoot()],

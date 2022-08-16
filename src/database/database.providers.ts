@@ -1,14 +1,15 @@
-import { DataSource } from 'typeorm';
 import path from 'path';
-import { Wallet } from './entities/wallet.entity';
+import { DataSource } from 'typeorm';
+
 import {
   DATA_SOURCE,
   STAKE_REPOSITORY,
   TRANSACTION_REPOSITORY,
   WALLET_REPOSITORY,
 } from './constants/db-ids.constants';
-import { Transaction } from './entities/transaction.entity';
 import { Stake } from './entities/stake.entity';
+import { Transaction } from './entities/transaction.entity';
+import { Wallet } from './entities/wallet.entity';
 
 export const databaseProviders = [
   {
