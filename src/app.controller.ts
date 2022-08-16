@@ -196,8 +196,6 @@ export class AppController {
   }
 
   @Put('faucet')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiAcceptedResponse({
     type: String,
   })
