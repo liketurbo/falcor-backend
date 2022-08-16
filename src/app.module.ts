@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { WalletsModule } from './wallets/wallets.module';
-import { AuthModule } from './auth/auth.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { StakingModule } from './staking/staking.module';
 
 @Module({
-  imports: [WalletsModule, AuthModule, TransactionsModule],
+  imports: [StakingModule, TransactionsModule, WalletsModule],
   controllers: [],
   providers: [],
 })

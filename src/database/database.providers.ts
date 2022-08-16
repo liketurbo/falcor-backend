@@ -3,10 +3,12 @@ import path from 'path';
 import { Wallet } from './entities/wallet.entity';
 import {
   DATA_SOURCE,
+  STAKE_REPOSITORY,
   TRANSACTION_REPOSITORY,
   WALLET_REPOSITORY,
 } from './constants/db-ids.constants';
 import { Transaction } from './entities/transaction.entity';
+import { Stake } from './entities/stake.entity';
 
 export const databaseProviders = [
   {
@@ -44,5 +46,11 @@ export const WalletProvider = {
 export const TransactionProvider = {
   provide: TRANSACTION_REPOSITORY,
   useFactory: (dataSource: DataSource) => dataSource.getRepository(Transaction),
+  inject: [DATA_SOURCE],
+};
+
+export const StakeProvider = {
+  provide: STAKE_REPOSITORY,
+  useFactory: (dataSource: DataSource) => dataSource.getRepository(Stake),
   inject: [DATA_SOURCE],
 };

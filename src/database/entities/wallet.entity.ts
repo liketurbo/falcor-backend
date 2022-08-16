@@ -1,10 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  CreateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
 } from '../../wallets/constants/wallet-types.constants';
 import { WalletType } from '../../types';
+import { Stake } from './stake.entity';
 
 @Entity({ name: 'wallets' })
 export class Wallet {
@@ -38,6 +45,9 @@ export class Wallet {
     default: PERSONAL_WALLET,
   })
   type: WalletType;
+
+  @OneToMany(() => Stake, (stake) => stake.owner)
+  stakes: Stake[];
 
   @CreateDateColumn({
     name: 'created_at',
