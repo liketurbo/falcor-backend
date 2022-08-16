@@ -75,7 +75,7 @@ export class AppController {
     };
   }
 
-  @Post('import-wallet')
+  @Put('import-wallet')
   async importWallet(@Body() { mnemonic, password }: ImportWalletReqDto) {
     const restoredWallet = this.ethersSigner.createWalletfromMnemonic(mnemonic);
 
