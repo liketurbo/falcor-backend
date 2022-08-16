@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Inject,
   Post,
   Request,
@@ -12,8 +13,12 @@ import parse from 'postgres-interval';
 import { Repository } from 'typeorm';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { STAKE_REPOSITORY } from '../database/constants/db-ids.constants';
+import {
+  STAKE_REPOSITORY,
+  WALLET_REPOSITORY,
+} from '../database/constants/db-ids.constants';
 import { Stake } from '../database/entities/stake.entity';
+import { Wallet } from '../database/entities/wallet.entity';
 import {
   INTERVAL_3_MONTHS,
   INTERVAL_6_MONTHS,
@@ -27,6 +32,8 @@ export class StakingController {
   constructor(
     @Inject(STAKE_REPOSITORY)
     private readonly stakeRepository: Repository<Stake>,
+    @Inject(WALLET_REPOSITORY)
+    private readonly walletsRepository: Repository<Wallet>,
   ) {}
 
   @Post('create')
@@ -44,6 +51,12 @@ export class StakingController {
     const INTERVALS = [INTERVAL_3_MONTHS, INTERVAL_6_MONTHS, INTERVAL_9_MONTHS];
     if (!INTERVALS.includes(period))
       throw new BadRequestException('Invalid interval provided');
+
+    const foundWallet = await this.walletsRepository.findOneBy({
+      pubkey,
+    });
+    if (foundWallet.balance < amount)
+      throw new ForbiddenException('Insufficient balance');
 
     const stake = this.stakeRepository.create({
       amount,
