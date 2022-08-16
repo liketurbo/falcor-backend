@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  pg:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+  app:
+    build: .
+    depends_on:
+      - pg
+    ports:
+      - 3000:3000
