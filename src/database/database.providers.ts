@@ -21,6 +21,7 @@ export const databaseProviders = [
         database: 'postgres',
         synchronize: true,
         logging: true,
+        dropSchema: true,
         entities: [path.join(__dirname, 'entities/*.entity{.ts,.js}')],
         migrations: [path.join(__dirname, 'migrations/*{.ts,.js}')],
         subscribers: [],
