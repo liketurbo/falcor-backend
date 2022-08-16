@@ -13,9 +13,15 @@ jobs:
     steps:
     - name: executing remote ssh commands using ssh key
       uses: appleboy/ssh-action@master
+      env:
+        URL: "git@github.com:liketurbo/falcor-backend.git"
+        FOLDER: "falcor-backend"
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
         port: ${{ secrets.PORT }}
-        script: whoami | ls -al
+        script: |
+          mkdir -p projects
+          cd projects
+          if [ ! -d "$FOLDER" ] ; then git clone $URL $FOLDER else cd "$FOLDER" git pull $URL fi
