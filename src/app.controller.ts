@@ -8,12 +8,18 @@ import {
   Logger,
   NotFoundException,
   Post,
+  Put,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiAcceptedResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -25,6 +31,7 @@ import { Transaction } from './database/entities/transaction.entity';
 import { Wallet } from './database/entities/wallet.entity';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
+import { FaucetDto } from './dto/faucet.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
 import { SendDto } from './dto/send.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -184,5 +191,22 @@ export class AppController {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  @Put('faucet')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiAcceptedResponse({
+    type: String,
+  })
+  async faucet(@Body() body: FaucetDto): Promise<string> {
+    await this.walletsRepository.increment(
+      {
+        pubkey: body.pubkey,
+      },
+      'balance',
+      body.amount,
+    );
+    return 'Ok';
   }
 }

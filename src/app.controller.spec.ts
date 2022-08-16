@@ -173,4 +173,25 @@ describe('AppController', () => {
       ).length,
     ).toBe(4);
   }, 10e3);
+
+  it('faucet wallet balance', async () => {
+    const res1 = await appController.createWallet({ password: '0000' });
+    const decoded = jwtService.decode(res1.accessToken) as Record<
+      string,
+      string
+    >;
+
+    const wallet1 = await walletRepository.findOneBy({
+      pubkey: decoded.pubkey,
+    });
+    const res2 = await appController.faucet({
+      amount: 612,
+      pubkey: decoded.pubkey,
+    });
+    expect(res2).toBe('Ok');
+    const wallet2 = await walletRepository.findOneBy({
+      pubkey: decoded.pubkey,
+    });
+    expect(wallet1.balance + 612).toBe(wallet2.balance);
+  });
 });
