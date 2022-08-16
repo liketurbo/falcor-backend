@@ -21,7 +21,7 @@ import {
 import { Transaction } from '../database/entities/transaction.entity';
 import { Wallet } from '../database/entities/wallet.entity';
 import { ServiceWalletsVariables } from '../types';
-import { SendDto } from './dto/send.dto';
+import { SendTransactionDto } from './dto/send-transaction.dto';
 
 @Controller('transactions')
 @ApiTags('transactions')
@@ -46,7 +46,10 @@ export class TransactionsController {
     isArray: true,
     description: 'A newly created transaction',
   })
-  async send(@Request() req, @Body() body: SendDto): Promise<Transaction[]> {
+  async send(
+    @Request() req,
+    @Body() body: SendTransactionDto,
+  ): Promise<Transaction[]> {
     const { pubkey } = req.user;
 
     const fromWallet = await this.walletsRepository.findOneBy({
