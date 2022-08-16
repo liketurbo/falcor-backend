@@ -8,6 +8,7 @@ export interface RandomWallet {
   address: string;
   pubkey: string;
   mnemonic: string;
+  keystore: string;
 }
 
 export type ServiceWalletsVariables = ReturnType<typeof serviceWalletsConfig>;

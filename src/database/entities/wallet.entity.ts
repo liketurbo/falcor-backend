@@ -10,15 +10,11 @@ import { WalletType } from '../../types';
 export class Wallet {
   @PrimaryColumn()
   @ApiProperty()
-  address: string;
-
-  @Column()
-  @ApiProperty()
   pubkey: string;
 
   @Column()
   @ApiProperty()
-  mnemonic: string;
+  keystore: string;
 
   @Column({ type: 'float', default: 0 })
   @ApiProperty()
