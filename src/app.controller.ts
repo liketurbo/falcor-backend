@@ -18,10 +18,12 @@ import {
   ApiAcceptedResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
+import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import {
   DATA_SOURCE,
   TRANSACTION_REPOSITORY,
@@ -208,5 +210,16 @@ export class AppController {
       body.amount,
     );
     return 'Ok';
+  }
+
+  @Get('service-wallets')
+  @ApiOkResponse({
+    type: Wallet,
+    isArray: true,
+  })
+  async getServiceWallets() {
+    return this.walletsRepository.findBy({
+      type: SERVICE_WALLET,
+    });
   }
 }

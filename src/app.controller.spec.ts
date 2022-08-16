@@ -6,6 +6,7 @@ import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 import { AppController } from './app.controller';
 import serviceWalletsConfig from './config/service-wallets.config';
+import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
@@ -193,5 +194,15 @@ describe('AppController', () => {
       pubkey: decoded.pubkey,
     });
     expect(wallet1.balance + 612).toBe(wallet2.balance);
+  });
+
+  it('get service wallets', async () => {
+    const wallets = await appController.getServiceWallets();
+    expect(wallets.length).toBe(4);
+    for (const wallet of wallets) {
+      expect(wallet).toMatchObject({
+        type: SERVICE_WALLET,
+      });
+    }
   });
 });
