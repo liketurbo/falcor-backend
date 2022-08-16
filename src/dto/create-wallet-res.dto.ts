@@ -5,5 +5,5 @@ export class CreateWalletResDto {
   mnemonic: string;
 
   @ApiProperty()
-  jwt: string;
+  accessToken: string;
 }

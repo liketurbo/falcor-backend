@@ -2,14 +2,18 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   Inject,
   InternalServerErrorException,
   Logger,
   NotFoundException,
   Post,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import { JwtService } from '@nestjs/jwt';
+import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -23,6 +27,7 @@ import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
 import { SendDto } from './dto/send.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ServiceWalletsVariables } from './types';
 
 @Controller()
@@ -40,6 +45,7 @@ export class AppController {
     @InjectSignerProvider()
     private readonly ethersSigner: EthersSigner,
     private readonly configService: ConfigService<ServiceWalletsVariables>,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Post('create-wallet')
@@ -56,7 +62,7 @@ export class AppController {
     });
     return {
       mnemonic: randomWallet.mnemonic.phrase,
-      jwt: '',
+      accessToken: this.jwtService.sign({ pubkey: randomWallet.publicKey }),
     };
   }
 
@@ -79,19 +85,33 @@ export class AppController {
     );
 
     return {
-      jwt: '',
+      accessToken: this.jwtService.sign({ pubkey: restoredWallet.publicKey }),
     };
   }
 
+  @Get('get-wallet')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async getWallet(@Request() req) {
+    const { pubkey } = req.user;
+    return this.walletsRepository.findOneByOrFail({
+      pubkey,
+    });
+  }
+
   @Post('send')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiCreatedResponse({
     type: Transaction,
     isArray: true,
     description: 'A newly created transaction',
   })
-  async send(@Body() body: SendDto): Promise<Transaction[]> {
+  async send(@Request() req, @Body() body: SendDto): Promise<Transaction[]> {
+    const { pubkey } = req.user;
+
     const fromWallet = await this.walletsRepository.findOneBy({
-      pubkey: body.from,
+      pubkey,
     });
     const toWallet = await this.walletsRepository.findOneBy({
       pubkey: body.to,
@@ -120,14 +140,14 @@ export class AppController {
         const reward = (commissionAmount * serviceWallet.percentage) / 100;
         const transaction = this.transactionRepository.create({
           amount: reward,
-          from: body.from,
+          from: pubkey,
           to: serviceWallet.address,
         });
         transactions.push(transaction);
         await queryRunner.manager.save(transaction);
         await queryRunner.manager.increment(
           Wallet,
-          { address: serviceWallet.address },
+          { pubkey: serviceWallet.pubkey },
           'balance',
           reward,
         );
@@ -137,20 +157,20 @@ export class AppController {
 
       const transaction = this.transactionRepository.create({
         amount: leftAmount,
-        from: body.from,
+        from: pubkey,
         to: body.to,
       });
       transactions.push(transaction);
       await queryRunner.manager.save(transaction);
       await queryRunner.manager.decrement(
         Wallet,
-        { address: body.from },
+        { pubkey },
         'balance',
         leftAmount,
       );
       await queryRunner.manager.increment(
         Wallet,
-        { address: body.to },
+        { pubkey: body.to },
         'balance',
         leftAmount,
       );

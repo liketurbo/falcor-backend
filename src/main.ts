@@ -10,6 +10,7 @@ async function bootstrap() {
     .setDescription('Routes for main Smart Chain operations')
     .setVersion('1.0')
     .addTag('app')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);

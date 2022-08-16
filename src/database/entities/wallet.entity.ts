@@ -6,15 +6,21 @@ import {
 } from '../../constants/wallet-types.constants';
 import { WalletType } from '../../types';
 
-@Entity()
+@Entity({ name: 'wallets' })
 export class Wallet {
   @PrimaryColumn()
   @ApiProperty()
   pubkey: string;
 
-  @Column()
-  @ApiProperty()
-  keystore: string;
+  @Column({
+    nullable: true,
+  })
+  keystore?: string;
+
+  @Column({
+    nullable: true,
+  })
+  mnemonic?: string;
 
   @Column({ type: 'float', default: 0 })
   @ApiProperty()

@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity({ name: 'transactions' })
 export class Transaction {
   @ApiProperty()
   @PrimaryGeneratedColumn()
