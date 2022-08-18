@@ -2,8 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Inject,
-  NotFoundException,
   Post,
   Put,
   Request,
@@ -16,32 +14,22 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { EthersSigner, InjectSignerProvider } from 'nestjs-ethers';
-import { DataSource, Repository } from 'typeorm';
 
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  DATA_SOURCE,
-  WALLET_REPOSITORY,
-} from '../database/constants/db-ids.constants';
 import { Wallet } from '../database/entities/wallet.entity';
-import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { FaucetDto } from './dto/faucet.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
+import { ImportWalletResDto } from './dto/import-wallet-res.dto';
+import { WalletsService } from './wallets.service';
 
 @Controller('wallets')
 @ApiTags('wallets')
 export class WalletsController {
   constructor(
-    @Inject(DATA_SOURCE)
-    private readonly dbConnection: DataSource,
-    @Inject(WALLET_REPOSITORY)
-    private readonly walletsRepository: Repository<Wallet>,
-    @InjectSignerProvider()
-    private readonly ethersSigner: EthersSigner,
+    private readonly walletsService: WalletsService,
     private readonly authService: AuthService,
   ) {}
 
@@ -52,38 +40,25 @@ export class WalletsController {
   async createWallet(
     @Body() { password }: CreateWalletReqDto,
   ): Promise<CreateWalletResDto> {
-    const randomWallet = this.ethersSigner.createRandomWallet();
-    await this.walletsRepository.save({
-      pubkey: randomWallet.publicKey,
-      keystore: await randomWallet.encrypt(password),
+    const draftWallet = await this.walletsService.createDraft(password);
+    await this.walletsService.save({
+      pubkey: draftWallet.pubkey,
+      keystore: draftWallet.keystore,
     });
-    const { accessToken } = this.authService.login(randomWallet.publicKey);
+    const { accessToken } = this.authService.login(draftWallet.pubkey);
     return {
-      mnemonic: randomWallet.mnemonic.phrase,
+      mnemonic: draftWallet.mnemonic,
       accessToken,
     };
   }
 
   @Put('import')
-  async importWallet(@Body() { mnemonic, password }: ImportWalletReqDto) {
-    const restoredWallet = this.ethersSigner.createWalletfromMnemonic(mnemonic);
-
-    const foundWallet = await this.walletsRepository.findOneBy({
-      pubkey: restoredWallet.publicKey,
-    });
-    if (!foundWallet) return new NotFoundException('Wallet not found');
-
-    await this.walletsRepository.update(
-      {
-        pubkey: restoredWallet.publicKey,
-      },
-      {
-        keystore: await restoredWallet.encrypt(password),
-      },
-    );
-
-    const { accessToken } = this.authService.login(restoredWallet.publicKey);
-
+  async importWallet(
+    @Body() { mnemonic, password }: ImportWalletReqDto,
+  ): Promise<ImportWalletResDto> {
+    const importedWallet = await this.walletsService.import(mnemonic);
+    await this.walletsService.changePassword(importedWallet.mnemonic, password);
+    const { accessToken } = this.authService.login(importedWallet.pubkey);
     return {
       accessToken,
     };
@@ -92,11 +67,9 @@ export class WalletsController {
   @Get('current')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  async getCurrent(@Request() req) {
+  async getCurrent(@Request() req): Promise<Wallet> {
     const { pubkey } = req.user;
-    return this.walletsRepository.findOneByOrFail({
-      pubkey,
-    });
+    return this.walletsService.getByPubkey(pubkey);
   }
 
   @Put('faucet')
@@ -104,13 +77,7 @@ export class WalletsController {
     type: String,
   })
   async faucet(@Body() body: FaucetDto): Promise<string> {
-    await this.walletsRepository.increment(
-      {
-        pubkey: body.pubkey,
-      },
-      'balance',
-      body.amount,
-    );
+    await this.walletsService.incrementBalance(body.pubkey, body.amount);
     return 'Ok';
   }
 
@@ -119,9 +86,13 @@ export class WalletsController {
     type: Wallet,
     isArray: true,
   })
-  async getPools() {
-    return this.walletsRepository.findBy({
-      type: SERVICE_WALLET,
-    });
+  async getPools(): Promise<Wallet[]> {
+    const pools = [
+      this.walletsService.getById('1'),
+      this.walletsService.getById('2'),
+      this.walletsService.getById('3'),
+      this.walletsService.getById('4'),
+    ];
+    return Promise.all(pools);
   }
 }

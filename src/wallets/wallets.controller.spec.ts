@@ -1,23 +1,19 @@
-import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
-import serviceWalletsConfig from '../common/config/service-wallets.config';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';
-import {
-  TransactionProvider,
-  WalletProvider,
-} from '../database/database.providers';
+import { WalletProvider } from '../database/database.providers';
 import { Wallet } from '../database/entities/wallet.entity';
 import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import { WalletsController } from './wallets.controller';
+import { WalletsService } from './wallets.service';
 
 describe('WalletsController', () => {
   let authService: AuthService;
@@ -27,14 +23,9 @@ describe('WalletsController', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        EthersModule.forRoot(),
-        DatabaseModule,
-        ConfigModule.forFeature(serviceWalletsConfig),
-        AuthModule,
-      ],
+      imports: [AuthModule, DatabaseModule, EthersModule.forRoot()],
       controllers: [WalletsController],
-      providers: [WalletProvider, TransactionProvider],
+      providers: [WalletProvider, WalletsService],
     }).compile();
 
     authService = module.get(AuthService);
@@ -76,10 +67,10 @@ describe('WalletsController', () => {
       password: '0000',
     });
     const pubkey1 = authService.validate(res1.accessToken);
-    const res2 = (await walletsController.importWallet({
+    const res2 = await walletsController.importWallet({
       mnemonic: res1.mnemonic,
       password: '0000',
-    })) as { accessToken: string };
+    });
     const pubkey2 = authService.validate(res2.accessToken);
     expect(pubkey1).toBe(pubkey2);
   }, 10e3);
