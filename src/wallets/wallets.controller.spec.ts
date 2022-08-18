@@ -1,9 +1,11 @@
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
+import appConfig from '../common/config/app.config';
 import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
@@ -23,7 +25,12 @@ describe('WalletsController', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AuthModule, DatabaseModule, EthersModule.forRoot()],
+      imports: [
+        AuthModule,
+        ConfigModule.forFeature(appConfig),
+        DatabaseModule,
+        EthersModule.forRoot(),
+      ],
       controllers: [WalletsController],
       providers: [WalletProvider, WalletsService],
     }).compile();
@@ -73,7 +80,7 @@ describe('WalletsController', () => {
     });
     const pubkey2 = authService.validate(res2.accessToken);
     expect(pubkey1).toBe(pubkey2);
-  }, 10e3);
+  });
 
   it('should get a wallet', async () => {
     const res = await walletsController.createWallet({

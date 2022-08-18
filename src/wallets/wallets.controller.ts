@@ -7,6 +7,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiAcceptedResponse,
   ApiBearerAuth,
@@ -18,6 +19,7 @@ import {
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Wallet } from '../database/entities/wallet.entity';
+import { AppVariables } from '../types';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { FaucetDto } from './dto/faucet.dto';
@@ -29,8 +31,9 @@ import { WalletsService } from './wallets.service';
 @ApiTags('wallets')
 export class WalletsController {
   constructor(
-    private readonly walletsService: WalletsService,
     private readonly authService: AuthService,
+    private readonly config: ConfigService<AppVariables>,
+    private readonly walletsService: WalletsService,
   ) {}
 
   @Post('create')
@@ -87,12 +90,12 @@ export class WalletsController {
     isArray: true,
   })
   async getPools(): Promise<Wallet[]> {
-    const pools = [
-      this.walletsService.getById('1'),
-      this.walletsService.getById('2'),
-      this.walletsService.getById('3'),
-      this.walletsService.getById('4'),
-    ];
+    const pools = [];
+    const serviceWallets =
+      this.config.get<AppVariables['serviceWallets']>('serviceWallets');
+    serviceWallets.forEach((w) =>
+      pools.push(this.walletsService.getByPubkey(w.pubkey)),
+    );
     return Promise.all(pools);
   }
 }

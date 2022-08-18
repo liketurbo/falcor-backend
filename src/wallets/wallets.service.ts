@@ -42,18 +42,18 @@ export class WalletsService {
     pubkey,
     keystore,
     mnemonic,
-    id,
+    name,
   }: {
     pubkey: string;
     keystore?: string;
     mnemonic?: string;
-    id?: string;
+    name?: string;
   }): Promise<void> {
     const newWallet = this.walletsRepository.create({
       pubkey,
       keystore,
       mnemonic,
-      id,
+      name,
     });
     await this.walletsRepository.save(newWallet);
   }
@@ -113,12 +113,6 @@ export class WalletsService {
   getByPubkey(pubkey: string): Promise<Wallet> {
     return this.walletsRepository.findOneBy({
       pubkey,
-    });
-  }
-
-  getById(id: string): Promise<Wallet> {
-    return this.walletsRepository.findOneBy({
-      id,
     });
   }
 

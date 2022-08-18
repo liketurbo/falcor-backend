@@ -38,7 +38,7 @@ export class Wallet {
     nullable: true,
     unique: true,
   })
-  id?: string;
+  name?: string;
 
   @Column({
     type: 'enum',

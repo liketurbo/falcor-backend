@@ -72,7 +72,7 @@ describe('WalletsService', () => {
       pubkey: importedWallet.pubkey,
       keystore: importedWallet.keystore,
     });
-  }, 10e3);
+  });
 
   it('restores wallet', async () => {
     const wallet = await walletsService.createDraft('0000');
@@ -92,7 +92,7 @@ describe('WalletsService', () => {
     await expect(walletsService.restore(wallet.pubkey, '0001')).rejects.toEqual(
       new ForbiddenException('Invalid password'),
     );
-  }, 10e3);
+  });
 
   it('changes password', async () => {
     const wallet = await walletsService.createDraft('0000');
@@ -106,7 +106,7 @@ describe('WalletsService', () => {
     });
     expect(wallet.pubkey).toBe(foundWallet.pubkey);
     expect(wallet.keystore).not.toBe(foundWallet.keystore);
-  }, 10e3);
+  });
 
   it('finds wallet by pubkey', async () => {
     const wallet = await walletsService.createDraft('0000');
@@ -116,17 +116,6 @@ describe('WalletsService', () => {
     });
     const foundWallet = await walletsService.getByPubkey(wallet.pubkey);
     expect(foundWallet).toBeDefined();
-  });
-
-  it('finds wallet by id', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-      id: Math.random().toString(36).slice(3),
-    });
-    const foundWallet = await walletsService.getById('007');
-    expect(foundWallet).toBeTruthy();
   });
 
   it('updates balance', async () => {
