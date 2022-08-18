@@ -110,13 +110,13 @@ export class WalletsService {
     );
   }
 
-  getByPubkey(pubkey: string): Promise<Wallet> {
+  getByPubkey(pubkey: string): Promise<Wallet | null> {
     return this.walletsRepository.findOneBy({
       pubkey,
     });
   }
 
-  async incrementBalance(pubkey: string, amount: number): Promise<void> {
+  async increaseBalance(pubkey: string, amount: number): Promise<void> {
     await this.walletsRepository.increment(
       {
         pubkey,

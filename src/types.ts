@@ -1,16 +1,11 @@
-import serviceWalletsConfig from './common/config/service-wallets.config';
+import appConfig from './common/config/app.config';
 import {
   PERSONAL_WALLET,
   SERVICE_WALLET,
 } from './wallets/constants/wallet-types.constants';
 
-export interface RandomWallet {
-  address: string;
-  pubkey: string;
-  mnemonic: string;
-  keystore: string;
-}
-
-export type ServiceWalletsVariables = ReturnType<typeof serviceWalletsConfig>;
+export type AppVariables = ReturnType<typeof appConfig>;
 
 export type WalletType = typeof SERVICE_WALLET | typeof PERSONAL_WALLET;
+
+export type PublicKey = string;

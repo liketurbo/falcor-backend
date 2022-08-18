@@ -126,7 +126,7 @@ describe('WalletsService', () => {
     });
     const foundWallet1 = await walletsService.getByPubkey(wallet.pubkey);
     expect(foundWallet1.balance).toBe(0);
-    await walletsService.incrementBalance(foundWallet1.pubkey, 666);
+    await walletsService.increaseBalance(foundWallet1.pubkey, 666);
     const foundWallet2 = await walletsService.getByPubkey(wallet.pubkey);
     expect(foundWallet2.balance).toBe(666);
   });

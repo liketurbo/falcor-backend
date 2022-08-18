@@ -80,7 +80,7 @@ export class WalletsController {
     type: String,
   })
   async faucet(@Body() body: FaucetDto): Promise<string> {
-    await this.walletsService.incrementBalance(body.pubkey, body.amount);
+    await this.walletsService.increaseBalance(body.pubkey, body.amount);
     return 'Ok';
   }
 

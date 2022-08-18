@@ -1,22 +1,22 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EthersModule } from 'nestjs-ethers';
 
 import { AuthModule } from '../auth/auth.module';
-import serviceWalletsConfig from '../common/config/service-wallets.config';
+import appConfig from '../common/config/app.config';
 import { DatabaseModule } from '../database/database.module';
-import {
-  TransactionProvider,
-  WalletProvider,
-} from '../database/database.providers';
-import { TransactionsController } from './transactions.controller';
+import { TransactionProvider } from '../database/database.providers';
+import { WalletsModule } from '../wallets/wallets.module';
+import { TransactionsService } from './transactions.service';
 
 @Module({
   imports: [
     AuthModule,
-    ConfigModule.forFeature(serviceWalletsConfig),
+    ConfigModule.forFeature(appConfig),
     DatabaseModule,
+    EthersModule.forRoot(),
+    WalletsModule,
   ],
-  controllers: [TransactionsController],
-  providers: [TransactionProvider, WalletProvider],
+  providers: [TransactionProvider, TransactionsService],
 })
 export class TransactionsModule {}
