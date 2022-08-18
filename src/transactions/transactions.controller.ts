@@ -87,7 +87,7 @@ export class TransactionsController {
           to: serviceWallet.address,
         });
         transactions.push(transaction);
-        await queryRunner.manager.save(transaction);
+        await queryRunner.manager.save(Transaction, transaction);
         await queryRunner.manager.increment(
           Wallet,
           { pubkey: serviceWallet.pubkey },
