@@ -97,5 +97,34 @@ describe('StakingController', () => {
     ).rejects.toEqual(new ForbiddenException('Insufficient balance'));
   });
 
-  it.todo('created stake and decremented balance');
+  it('created stake and decremented balance', async () => {
+    const res1 = await walletsController.createWallet({
+      password: '0000',
+    });
+    const pubkey = authService.validate(res1.accessToken);
+
+    await walletRepository.increment(
+      {
+        pubkey,
+      },
+      'balance',
+      10,
+    );
+
+    const res2 = await stakingController.createStake(
+      { user: { pubkey } },
+      {
+        amount: 5,
+        period: '3 mons',
+      },
+    );
+
+    expect(res2).toBe('Ok');
+
+    const foundWallet = await walletRepository.findOneBy({
+      pubkey,
+    });
+
+    expect(foundWallet.balance).toBe(5);
+  });
 });
