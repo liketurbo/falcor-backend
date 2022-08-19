@@ -116,22 +116,11 @@ export class WalletsController {
   ): Promise<Transaction[]> {
     const { pubkey } = req.user;
     const queryRunner = await this.transactionsService.start();
-    const transactions: Transaction[] = [];
-    const { commissionAmount, leftAmount } =
-      this.transactionsService.calcCommission(body.amount);
-    transactions.push(
-      await this.transactionsService.sendBetween(queryRunner, {
-        from: pubkey,
-        to: body.to,
-        amount: leftAmount,
-      }),
-    );
-    transactions.push(
-      ...(await this.transactionsService.sendCommissions(queryRunner, {
-        from: pubkey,
-        amount: commissionAmount,
-      })),
-    );
+    const transactions = await this.transactionsService.send(queryRunner, {
+      amount: body.amount,
+      from: pubkey,
+      to: body.to,
+    });
     await this.transactionsService.finish(queryRunner);
     return transactions;
   }

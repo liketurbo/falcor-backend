@@ -4,13 +4,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 
 import appConfig from '../common/config/app.config';
+import {
+  InsufficientBalance,
+  NotFoundWallet,
+} from '../common/errors/wallet.errors';
 import { DATA_SOURCE } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';
 import {
   TransactionProvider,
   WalletProvider,
 } from '../database/database.providers';
-import { Transaction } from '../database/entities/transaction.entity';
 import { WalletsModule } from '../wallets/wallets.module';
 import { WalletsService } from '../wallets/wallets.service';
 import { TransactionsService } from './transactions.service';
@@ -47,27 +50,32 @@ describe('TransactionsService', () => {
   it('send transaction', async () => {
     const draftWallet1 = await walletsService.createDraft('0000');
     await walletsService.save(draftWallet1);
-    const draftWallet2 = await walletsService.createDraft('0000');
-    await walletsService.save(draftWallet2);
-    await walletsService.increaseBalance(draftWallet1.pubkey, 10);
+    const draftWallet2 = await walletsService.createDraft('0001');
 
-    const transactions: Transaction[] = [];
     const queryRunner = await transactionsService.start();
-    const { commissionAmount, leftAmount } =
-      transactionsService.calcCommission(10);
-    transactions.push(
-      await transactionsService.sendBetween(queryRunner, {
+    await expect(
+      transactionsService.send(queryRunner, {
         from: draftWallet1.pubkey,
         to: draftWallet2.pubkey,
-        amount: leftAmount,
+        amount: 4,
       }),
-    );
-    transactions.push(
-      ...(await transactionsService.sendCommissions(queryRunner, {
+    ).rejects.toBeInstanceOf(NotFoundWallet);
+    await walletsService.save(draftWallet2);
+
+    await expect(
+      transactionsService.send(queryRunner, {
         from: draftWallet1.pubkey,
-        amount: commissionAmount,
-      })),
-    );
+        to: draftWallet2.pubkey,
+        amount: 4,
+      }),
+    ).rejects.toBeInstanceOf(InsufficientBalance);
+    await walletsService.increaseBalance(draftWallet1.pubkey, 10);
+
+    const transactions = await transactionsService.send(queryRunner, {
+      from: draftWallet1.pubkey,
+      to: draftWallet2.pubkey,
+      amount: 10,
+    });
     await transactionsService.finish(queryRunner);
     expect(transactions.length).toBe(4);
   });

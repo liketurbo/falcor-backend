@@ -7,10 +7,6 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import appConfig from '../common/config/app.config';
 import {
-  InsufficientBalance,
-  NotFoundWallet,
-} from '../common/errors/wallet.errors';
-import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
@@ -133,24 +129,6 @@ describe('WalletsController', () => {
     const res2 = await walletsController.createWallet({ password: '0001' });
     const pubkey1 = authService.validate(res1.accessToken);
     const pubkey2 = authService.validate(res2.accessToken);
-    await expect(
-      walletsController.send(
-        { user: { pubkey: pubkey1 } },
-        {
-          to: 'pubkey2',
-          amount: 4,
-        },
-      ),
-    ).rejects.toBeInstanceOf(NotFoundWallet);
-    await expect(
-      walletsController.send(
-        { user: { pubkey: pubkey1 } },
-        {
-          to: pubkey2,
-          amount: 4,
-        },
-      ),
-    ).rejects.toBeInstanceOf(InsufficientBalance);
     await walletsService.increaseBalance(pubkey1, 666);
     const transactions = await walletsController.send(
       { user: { pubkey: pubkey1 } },

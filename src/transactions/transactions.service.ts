@@ -46,10 +46,10 @@ export class TransactionsService {
     await queryRunner.release();
   }
 
-  async sendBetween(
+  async send(
     queryRunner: QueryRunner,
     { from, to, amount }: { from: PublicKey; to: PublicKey; amount: number },
-  ) {
+  ): Promise<Transaction[]> {
     if (amount <= 0) throw new BadRequestException('Amount is not positive');
 
     const sender = await this.walletsRepository.findOneBy({ pubkey: from });
@@ -59,9 +59,13 @@ export class TransactionsService {
 
     if (sender.balance < amount) throw new InsufficientBalance();
 
+    const { leftAmount, commissionAmount } = this.calcCommission(amount);
+
+    const transactions: Transaction[] = [];
+
     try {
       const transaction = this.transactionRepository.create({
-        amount,
+        amount: leftAmount,
         from,
         to,
       });
@@ -71,24 +75,33 @@ export class TransactionsService {
         Wallet,
         { pubkey: from },
         'balance',
-        amount,
+        leftAmount,
       );
       await queryRunner.manager.increment(
         Wallet,
         { pubkey: to },
         'balance',
-        amount,
+        leftAmount,
       );
 
-      return transaction;
+      transactions.push(transaction);
     } catch (err) {
-      this.logger.error(err, { from, to, amount });
+      this.logger.error(err, { from, to, amount: leftAmount });
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException("Transfer didn't go through");
     }
+
+    transactions.push(
+      ...(await this.sendCommissions(queryRunner, {
+        from,
+        amount: commissionAmount,
+      })),
+    );
+
+    return transactions;
   }
 
-  async sendCommissions(
+  private async sendCommissions(
     queryRunner: QueryRunner,
     {
       from,
@@ -137,7 +150,7 @@ export class TransactionsService {
     }
   }
 
-  calcCommission(amount: number) {
+  private calcCommission(amount: number) {
     const commissionAmount =
       (amount * this.config.get('commissionPercentage')) / 100;
     const leftAmount = amount - commissionAmount;
