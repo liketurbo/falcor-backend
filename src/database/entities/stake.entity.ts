@@ -17,12 +17,16 @@ export class Stake {
   @ApiProperty()
   id: number;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', name: 'hold_amount' })
   @ApiProperty()
-  amount: number;
+  holdAmount: number;
+
+  @Column({ type: 'float', name: 'profit_amount', default: 0 })
+  @ApiProperty()
+  profitAmount: number;
 
   @Column({ type: 'interval' })
-  @ApiProperty()
+  @ApiProperty({ type: String })
   period: IPostgresInterval;
 
   @ManyToOne(() => Wallet, (wallet) => wallet)

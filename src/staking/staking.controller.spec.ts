@@ -25,7 +25,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { WalletsController } from '../wallets/wallets.controller';
 import { WalletsModule } from '../wallets/wallets.module';
 import { WalletsService } from '../wallets/wallets.service';
-import { InvalidInterval } from './errors/staking.errors';
+import { InvalidInterval, WithdrawNotAllowed } from './errors/staking.errors';
 import { StakingController } from './staking.controller';
 
 describe('StakingController', () => {
@@ -83,7 +83,7 @@ describe('StakingController', () => {
 
     await expect(
       stakingController.createStake(
-        { user: { pubkey: draftWallet.pubkey } },
+        { user: draftWallet },
         {
           amount: 10,
           period: '01:02:03',
@@ -98,7 +98,7 @@ describe('StakingController', () => {
     await walletsService.increaseBalance(draftWallet.pubkey, 10);
 
     const createdStake = await stakingController.createStake(
-      { user: { pubkey: draftWallet.pubkey } },
+      { user: draftWallet },
       {
         amount: 5,
         period: '3 mons',
@@ -113,5 +113,195 @@ describe('StakingController', () => {
       id: createdStake.id,
     });
     expect(stake).toBeTruthy();
+  });
+
+  it('returns total stakes', async () => {
+    const draftWallet1 = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet1);
+    await walletsService.increaseBalance(draftWallet1.pubkey, 100);
+    const draftWallet2 = await walletsService.createDraft('0001');
+    await walletsService.savePersonal(draftWallet2);
+    await walletsService.increaseBalance(draftWallet2.pubkey, 100);
+
+    const stake1 = await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 5,
+        period: '3 mons',
+      },
+    );
+    const stake2 = await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 8,
+        period: '6 mons',
+      },
+    );
+    await stakeRepository.update(
+      {
+        id: stake2.id,
+      },
+      {
+        profitAmount: 11,
+      },
+    );
+    await stakingController.createStake(
+      { user: draftWallet2 },
+      {
+        amount: 18,
+        period: '9 mons',
+      },
+    );
+
+    const total = await stakingController.getTotal({ user: draftWallet1 });
+    expect(total).toBe(stake1.holdAmount + stake2.holdAmount + 11);
+  });
+
+  it('returns hold stakes', async () => {
+    const draftWallet1 = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet1);
+    await walletsService.increaseBalance(draftWallet1.pubkey, 100);
+    const draftWallet2 = await walletsService.createDraft('0001');
+    await walletsService.savePersonal(draftWallet2);
+    await walletsService.increaseBalance(draftWallet2.pubkey, 100);
+
+    const stake1 = await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 5,
+        period: '3 mons',
+      },
+    );
+    await stakeRepository.update(
+      {
+        id: stake1.id,
+      },
+      {
+        frozen: false,
+      },
+    );
+    const holdBalance1 = await stakingController.getHoldBalance({
+      user: draftWallet1,
+    });
+    expect(holdBalance1).toBe(0);
+    const stake2 = await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 8,
+        period: '6 mons',
+      },
+    );
+    await stakeRepository.update(
+      {
+        id: stake2.id,
+      },
+      {
+        profitAmount: 11,
+      },
+    );
+    await stakingController.createStake(
+      { user: draftWallet2 },
+      {
+        amount: 18,
+        period: '9 mons',
+      },
+    );
+
+    const holdBalance2 = await stakingController.getHoldBalance({
+      user: draftWallet1,
+    });
+    expect(holdBalance2).toBe(stake2.holdAmount);
+  });
+
+  it('returns profit', async () => {
+    const draftWallet1 = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet1);
+    await walletsService.increaseBalance(draftWallet1.pubkey, 100);
+    const draftWallet2 = await walletsService.createDraft('0001');
+    await walletsService.savePersonal(draftWallet2);
+    await walletsService.increaseBalance(draftWallet2.pubkey, 100);
+
+    await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 5,
+        period: '3 mons',
+      },
+    );
+    const stake2 = await stakingController.createStake(
+      { user: draftWallet1 },
+      {
+        amount: 8,
+        period: '6 mons',
+      },
+    );
+    await stakeRepository.update(
+      {
+        id: stake2.id,
+      },
+      {
+        profitAmount: 11,
+      },
+    );
+    await stakingController.createStake(
+      { user: draftWallet2 },
+      {
+        amount: 18,
+        period: '9 mons',
+      },
+    );
+
+    const profitAmount = await stakingController.getProfitAmount({
+      user: draftWallet1,
+    });
+    expect(profitAmount).toBe(11);
+  });
+
+  it('withdraw stake', async () => {
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    await walletsService.increaseBalance(draftWallet.pubkey, 100);
+
+    const stake = await stakingController.createStake(
+      { user: draftWallet },
+      {
+        amount: 5,
+        period: '3 mons',
+      },
+    );
+
+    await expect(
+      stakingController.withdrawStake(
+        { user: draftWallet },
+        {
+          id: stake.id,
+        },
+      ),
+    ).rejects.toBeInstanceOf(WithdrawNotAllowed);
+
+    await stakeRepository.update(
+      {
+        id: stake.id,
+      },
+      {
+        frozen: false,
+      },
+    );
+    const transactions = await stakingController.withdrawStake(
+      { user: draftWallet },
+      {
+        id: stake.id,
+      },
+    );
+    expect(transactions.length).toBe(4);
+
+    const foundWallet = await walletRepository.findOneBy({
+      pubkey: draftWallet.pubkey,
+    });
+    expect(foundWallet.balance).toBeGreaterThan(0);
+    const foundStake = await stakeRepository.findOneBy({
+      id: stake.id,
+    });
+    expect(foundStake).toBeNull();
   });
 });

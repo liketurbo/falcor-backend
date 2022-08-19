@@ -42,6 +42,16 @@ export class TransactionsService {
     return queryRunner;
   }
 
+  calcCommission(amount: number) {
+    const commissionAmount =
+      (amount * this.config.get('commissionPercentage')) / 100;
+    const leftAmount = amount - commissionAmount;
+    return {
+      commissionAmount,
+      leftAmount,
+    };
+  }
+
   async send(
     queryRunner: QueryRunner,
     { from, to, amount }: { from: PublicKey; to: PublicKey; amount: number },
@@ -142,15 +152,5 @@ export class TransactionsService {
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException("Transfers didn't go through");
     }
-  }
-
-  private calcCommission(amount: number) {
-    const commissionAmount =
-      (amount * this.config.get('commissionPercentage')) / 100;
-    const leftAmount = amount - commissionAmount;
-    return {
-      commissionAmount,
-      leftAmount,
-    };
   }
 }
