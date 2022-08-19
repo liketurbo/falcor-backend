@@ -33,6 +33,10 @@ export class Stake {
   @JoinColumn({ name: 'owner_pubkey' })
   owner: Wallet;
 
+  @Column({ default: true })
+  @ApiProperty()
+  frozen: boolean;
+
   @CreateDateColumn({
     name: 'created_at',
   })
