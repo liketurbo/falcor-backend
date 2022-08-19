@@ -7,12 +7,17 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import appConfig from '../common/config/app.config';
 import {
+  InsufficientBalance,
+  NotFoundWallet,
+} from '../common/errors/wallet.errors';
+import {
   DATA_SOURCE,
   WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';
 import { WalletProvider } from '../database/database.providers';
 import { Wallet } from '../database/entities/wallet.entity';
+import { TransactionsModule } from '../transactions/transactions.module';
 import { SERVICE_WALLET } from './constants/wallet-types.constants';
 import { WalletsController } from './wallets.controller';
 import { WalletsService } from './wallets.service';
@@ -22,6 +27,7 @@ describe('WalletsController', () => {
   let dbConnection: DataSource;
   let walletsController: WalletsController;
   let walletRepository: Repository<Wallet>;
+  let walletsService: WalletsService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +36,7 @@ describe('WalletsController', () => {
         ConfigModule.forFeature(appConfig),
         DatabaseModule,
         EthersModule.forRoot(),
+        TransactionsModule,
       ],
       controllers: [WalletsController],
       providers: [WalletProvider, WalletsService],
@@ -39,6 +46,7 @@ describe('WalletsController', () => {
     dbConnection = module.get<DataSource>(DATA_SOURCE);
     walletsController = module.get<WalletsController>(WalletsController);
     walletRepository = module.get<Repository<Wallet>>(WALLET_REPOSITORY);
+    walletsService = module.get<WalletsService>(WalletsService);
   });
 
   afterAll(async () => {
@@ -50,6 +58,7 @@ describe('WalletsController', () => {
     expect(dbConnection).toBeDefined();
     expect(walletsController).toBeDefined();
     expect(walletRepository).toBeDefined();
+    expect(walletsService).toBeDefined();
   });
 
   it('should create a wallet', async () => {
@@ -117,5 +126,39 @@ describe('WalletsController', () => {
         type: SERVICE_WALLET,
       });
     }
+  });
+
+  it('sends', async () => {
+    const res1 = await walletsController.createWallet({ password: '0000' });
+    const res2 = await walletsController.createWallet({ password: '0001' });
+    const pubkey1 = authService.validate(res1.accessToken);
+    const pubkey2 = authService.validate(res2.accessToken);
+    await expect(
+      walletsController.send(
+        { user: { pubkey: pubkey1 } },
+        {
+          to: 'pubkey2',
+          amount: 4,
+        },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundWallet);
+    await expect(
+      walletsController.send(
+        { user: { pubkey: pubkey1 } },
+        {
+          to: pubkey2,
+          amount: 4,
+        },
+      ),
+    ).rejects.toBeInstanceOf(InsufficientBalance);
+    await walletsService.increaseBalance(pubkey1, 666);
+    const transactions = await walletsController.send(
+      { user: { pubkey: pubkey1 } },
+      {
+        to: pubkey2,
+        amount: 4,
+      },
+    );
+    expect(transactions.length).toBe(4);
   });
 });

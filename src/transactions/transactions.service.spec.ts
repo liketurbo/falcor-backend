@@ -1,3 +1,4 @@
+import { forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -5,7 +6,10 @@ import { DataSource } from 'typeorm';
 import appConfig from '../common/config/app.config';
 import { DATA_SOURCE } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';
-import { TransactionProvider } from '../database/database.providers';
+import {
+  TransactionProvider,
+  WalletProvider,
+} from '../database/database.providers';
 import { Transaction } from '../database/entities/transaction.entity';
 import { WalletsModule } from '../wallets/wallets.module';
 import { WalletsService } from '../wallets/wallets.service';
@@ -21,9 +25,9 @@ describe('TransactionsService', () => {
       imports: [
         ConfigModule.forFeature(appConfig),
         DatabaseModule,
-        WalletsModule,
+        forwardRef(() => WalletsModule),
       ],
-      providers: [TransactionProvider, TransactionsService],
+      providers: [TransactionProvider, WalletProvider, TransactionsService],
     }).compile();
 
     dbConnection = module.get<DataSource>(DATA_SOURCE);
@@ -40,7 +44,7 @@ describe('TransactionsService', () => {
     expect(walletsService).toBeDefined();
   });
 
-  it('return 4 transactions', async () => {
+  it('send transaction', async () => {
     const draftWallet1 = await walletsService.createDraft('0000');
     await walletsService.save(draftWallet1);
     const draftWallet2 = await walletsService.createDraft('0000');

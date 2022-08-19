@@ -1,23 +1,25 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
-  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
 
 import {
+  InsufficientBalance,
+  NotFoundWallet,
+} from '../common/errors/wallet.errors';
+import {
   DATA_SOURCE,
   TRANSACTION_REPOSITORY,
+  WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
 import { Transaction } from '../database/entities/transaction.entity';
 import { Wallet } from '../database/entities/wallet.entity';
 import { AppVariables, PublicKey } from '../types';
-import { WalletsService } from '../wallets/wallets.service';
 
 @Injectable()
 export class TransactionsService {
@@ -25,11 +27,12 @@ export class TransactionsService {
 
   constructor(
     private readonly config: ConfigService<AppVariables>,
-    private readonly walletsService: WalletsService,
     @Inject(DATA_SOURCE)
     private readonly dbConnection: DataSource,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: Repository<Transaction>,
+    @Inject(WALLET_REPOSITORY)
+    private readonly walletsRepository: Repository<Wallet>,
   ) {}
 
   async start() {
@@ -49,13 +52,12 @@ export class TransactionsService {
   ) {
     if (amount <= 0) throw new BadRequestException('Amount is not positive');
 
-    const sender = await this.walletsService.getByPubkey(from);
-    const receiver = await this.walletsService.getByPubkey(to);
+    const sender = await this.walletsRepository.findOneBy({ pubkey: from });
+    const receiver = await this.walletsRepository.findOneBy({ pubkey: to });
 
-    if (!sender || !receiver) throw new NotFoundException('Wallet not found');
+    if (!sender || !receiver) throw new NotFoundWallet();
 
-    if (sender.balance < amount)
-      throw new ForbiddenException('Insufficient balance');
+    if (sender.balance < amount) throw new InsufficientBalance();
 
     try {
       const transaction = this.transactionRepository.create({
@@ -98,11 +100,10 @@ export class TransactionsService {
   ) {
     if (amount <= 0) throw new BadRequestException('Amount is not positive');
 
-    const sender = await this.walletsService.getByPubkey(from);
-    if (!sender) throw new NotFoundException('Wallet not found');
+    const sender = await this.walletsRepository.findOneBy({ pubkey: from });
+    if (!sender) throw new NotFoundWallet();
 
-    if (sender.balance < amount)
-      throw new ForbiddenException('Insufficient balance');
+    if (sender.balance < amount) throw new InsufficientBalance();
 
     const transactions: Transaction[] = [];
     const serviceWallets =

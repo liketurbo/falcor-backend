@@ -5,8 +5,10 @@ import { EthersModule } from 'nestjs-ethers';
 import { AuthModule } from '../auth/auth.module';
 import appConfig from '../common/config/app.config';
 import { DatabaseModule } from '../database/database.module';
-import { TransactionProvider } from '../database/database.providers';
-import { WalletsModule } from '../wallets/wallets.module';
+import {
+  TransactionProvider,
+  WalletProvider,
+} from '../database/database.providers';
 import { TransactionsService } from './transactions.service';
 
 @Module({
@@ -15,9 +17,8 @@ import { TransactionsService } from './transactions.service';
     ConfigModule.forFeature(appConfig),
     DatabaseModule,
     EthersModule.forRoot(),
-    WalletsModule,
   ],
-  providers: [TransactionProvider, TransactionsService],
+  providers: [TransactionProvider, TransactionsService, WalletProvider],
   exports: [TransactionsService],
 })
 export class TransactionsModule {}

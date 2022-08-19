@@ -18,13 +18,16 @@ import {
 
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Transaction } from '../database/entities/transaction.entity';
 import { Wallet } from '../database/entities/wallet.entity';
+import { TransactionsService } from '../transactions/transactions.service';
 import { AppVariables } from '../types';
 import { CreateWalletReqDto } from './dto/create-wallet-req.dto';
 import { CreateWalletResDto } from './dto/create-wallet-res.dto';
 import { FaucetDto } from './dto/faucet.dto';
 import { ImportWalletReqDto } from './dto/import-wallet-req.dto';
 import { ImportWalletResDto } from './dto/import-wallet-res.dto';
+import { SendTransactionDto } from './dto/send-transaction.dto';
 import { WalletsService } from './wallets.service';
 
 @Controller('wallets')
@@ -34,6 +37,7 @@ export class WalletsController {
     private readonly authService: AuthService,
     private readonly config: ConfigService<AppVariables>,
     private readonly walletsService: WalletsService,
+    private readonly transactionsService: TransactionsService,
   ) {}
 
   @Post('create')
@@ -97,5 +101,38 @@ export class WalletsController {
       pools.push(this.walletsService.getByPubkey(w.pubkey)),
     );
     return Promise.all(pools);
+  }
+
+  @Post('send')
+  @ApiOkResponse({
+    type: Transaction,
+    isArray: true,
+  })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async send(
+    @Request() req,
+    @Body() body: SendTransactionDto,
+  ): Promise<Transaction[]> {
+    const { pubkey } = req.user;
+    const queryRunner = await this.transactionsService.start();
+    const transactions: Transaction[] = [];
+    const { commissionAmount, leftAmount } =
+      this.transactionsService.calcCommission(body.amount);
+    transactions.push(
+      await this.transactionsService.sendBetween(queryRunner, {
+        from: pubkey,
+        to: body.to,
+        amount: leftAmount,
+      }),
+    );
+    transactions.push(
+      ...(await this.transactionsService.sendCommissions(queryRunner, {
+        from: pubkey,
+        amount: commissionAmount,
+      })),
+    );
+    await this.transactionsService.finish(queryRunner);
+    return transactions;
   }
 }
