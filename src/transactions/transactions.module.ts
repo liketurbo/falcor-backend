@@ -18,5 +18,6 @@ import { TransactionsService } from './transactions.service';
     WalletsModule,
   ],
   providers: [TransactionProvider, TransactionsService],
+  exports: [TransactionsService],
 })
 export class TransactionsModule {}

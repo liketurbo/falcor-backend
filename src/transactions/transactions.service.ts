@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 
 import {
   DATA_SOURCE,
@@ -32,7 +32,21 @@ export class TransactionsService {
     private readonly transactionRepository: Repository<Transaction>,
   ) {}
 
-  async send(from: PublicKey, to: PublicKey, amount: number) {
+  async start() {
+    const queryRunner = this.dbConnection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    return queryRunner;
+  }
+
+  async finish(queryRunner: QueryRunner) {
+    await queryRunner.release();
+  }
+
+  async sendBetween(
+    queryRunner: QueryRunner,
+    { from, to, amount }: { from: PublicKey; to: PublicKey; amount: number },
+  ) {
     if (amount <= 0) throw new BadRequestException('Amount is not positive');
 
     const sender = await this.walletsService.getByPubkey(from);
@@ -43,13 +57,52 @@ export class TransactionsService {
     if (sender.balance < amount)
       throw new ForbiddenException('Insufficient balance');
 
-    const queryRunner = this.dbConnection.createQueryRunner();
+    try {
+      const transaction = this.transactionRepository.create({
+        amount,
+        from,
+        to,
+      });
+      await queryRunner.manager.save(transaction);
 
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+      await queryRunner.manager.decrement(
+        Wallet,
+        { pubkey: from },
+        'balance',
+        amount,
+      );
+      await queryRunner.manager.increment(
+        Wallet,
+        { pubkey: to },
+        'balance',
+        amount,
+      );
 
-    const commissionAmount = amount * this.config.get('commissionPercentage');
-    const leftAmount = amount - commissionAmount;
+      return transaction;
+    } catch (err) {
+      this.logger.error(err, { from, to, amount });
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException("Transfer didn't go through");
+    }
+  }
+
+  async sendCommissions(
+    queryRunner: QueryRunner,
+    {
+      from,
+      amount,
+    }: {
+      from: PublicKey;
+      amount: number;
+    },
+  ) {
+    if (amount <= 0) throw new BadRequestException('Amount is not positive');
+
+    const sender = await this.walletsService.getByPubkey(from);
+    if (!sender) throw new NotFoundException('Wallet not found');
+
+    if (sender.balance < amount)
+      throw new ForbiddenException('Insufficient balance');
 
     const transactions: Transaction[] = [];
     const serviceWallets =
@@ -57,7 +110,7 @@ export class TransactionsService {
 
     try {
       for (const wallet of serviceWallets) {
-        const reward = (commissionAmount * wallet.percentage) / 100;
+        const reward = (amount * wallet.percentage) / 100;
         if (reward === 0) continue;
 
         const transaction = this.transactionRepository.create({
@@ -75,35 +128,21 @@ export class TransactionsService {
         );
       }
 
-      const transaction = this.transactionRepository.create({
-        amount: leftAmount,
-        from,
-        to,
-      });
-      transactions.push(transaction);
-      await queryRunner.manager.save(transaction);
-
-      await queryRunner.manager.decrement(
-        Wallet,
-        { pubkey: from },
-        'balance',
-        leftAmount,
-      );
-      await queryRunner.manager.increment(
-        Wallet,
-        { pubkey: to },
-        'balance',
-        leftAmount,
-      );
-
-      await queryRunner.commitTransaction();
       return transactions;
     } catch (err) {
-      this.logger.error(err, { from, to, amount });
+      this.logger.error(err, { from, amount });
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException("Transaction didn't go through");
-    } finally {
-      await queryRunner.release();
+      throw new InternalServerErrorException("Transfers didn't go through");
     }
+  }
+
+  calcCommission(amount: number) {
+    const commissionAmount =
+      (amount * this.config.get('commissionPercentage')) / 100;
+    const leftAmount = amount - commissionAmount;
+    return {
+      commissionAmount,
+      leftAmount,
+    };
   }
 }
