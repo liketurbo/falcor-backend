@@ -39,17 +39,14 @@ describe('WalletsService', () => {
   });
 
   it('creates wallet', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
     const foundWallet = await walletRepository.findOneBy({
-      pubkey: wallet.pubkey,
+      pubkey: draftWallet.pubkey,
     });
     expect({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
+      pubkey: draftWallet.pubkey,
+      keystore: draftWallet.keystore,
       mnemonic: null,
     }).toEqual({
       pubkey: foundWallet.pubkey,
@@ -59,15 +56,12 @@ describe('WalletsService', () => {
   });
 
   it('imports wallet', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
-    const importedWallet = await walletsService.import(wallet.mnemonic);
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    const importedWallet = await walletsService.import(draftWallet.mnemonic);
     expect({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
+      pubkey: draftWallet.pubkey,
+      keystore: draftWallet.keystore,
     }).toEqual({
       pubkey: importedWallet.pubkey,
       keystore: importedWallet.keystore,
@@ -75,59 +69,50 @@ describe('WalletsService', () => {
   });
 
   it('restores wallet', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
-    const restoredWallet = await walletsService.restore(wallet.pubkey, '0000');
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    const restoredWallet = await walletsService.restore(
+      draftWallet.pubkey,
+      '0000',
+    );
     expect({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
+      pubkey: draftWallet.pubkey,
+      keystore: draftWallet.keystore,
     }).toEqual({
       pubkey: restoredWallet.pubkey,
       keystore: restoredWallet.keystore,
     });
 
-    await expect(walletsService.restore(wallet.pubkey, '0001')).rejects.toEqual(
-      new ForbiddenException('Invalid password'),
-    );
+    await expect(
+      walletsService.restore(draftWallet.pubkey, '0001'),
+    ).rejects.toEqual(new ForbiddenException('Invalid password'));
   });
 
   it('changes password', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
-    await walletsService.changePassword(wallet.mnemonic, '0001');
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    await walletsService.changePassword(draftWallet.mnemonic, '0001');
     const foundWallet = await walletRepository.findOneBy({
-      pubkey: wallet.pubkey,
+      pubkey: draftWallet.pubkey,
     });
-    expect(wallet.pubkey).toBe(foundWallet.pubkey);
-    expect(wallet.keystore).not.toBe(foundWallet.keystore);
+    expect(draftWallet.pubkey).toBe(foundWallet.pubkey);
+    expect(draftWallet.keystore).not.toBe(foundWallet.keystore);
   });
 
   it('finds wallet by pubkey', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
-    const foundWallet = await walletsService.getByPubkey(wallet.pubkey);
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    const foundWallet = await walletsService.getByPubkey(draftWallet.pubkey);
     expect(foundWallet).toBeDefined();
   });
 
   it('updates balance', async () => {
-    const wallet = await walletsService.createDraft('0000');
-    await walletsService.save({
-      pubkey: wallet.pubkey,
-      keystore: wallet.keystore,
-    });
-    const foundWallet1 = await walletsService.getByPubkey(wallet.pubkey);
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    const foundWallet1 = await walletsService.getByPubkey(draftWallet.pubkey);
     expect(foundWallet1.balance).toBe(0);
     await walletsService.increaseBalance(foundWallet1.pubkey, 666);
-    const foundWallet2 = await walletsService.getByPubkey(wallet.pubkey);
+    const foundWallet2 = await walletsService.getByPubkey(draftWallet.pubkey);
     expect(foundWallet2.balance).toBe(666);
   });
 });

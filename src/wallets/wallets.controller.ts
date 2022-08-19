@@ -48,10 +48,7 @@ export class WalletsController {
     @Body() { password }: CreateWalletReqDto,
   ): Promise<CreateWalletResDto> {
     const draftWallet = await this.walletsService.createDraft(password);
-    await this.walletsService.save({
-      pubkey: draftWallet.pubkey,
-      keystore: draftWallet.keystore,
-    });
+    await this.walletsService.savePersonal(draftWallet);
     const { accessToken } = this.authService.login(draftWallet.pubkey);
     return {
       mnemonic: draftWallet.mnemonic,
@@ -115,13 +112,17 @@ export class WalletsController {
     @Body() body: SendTransactionDto,
   ): Promise<Transaction[]> {
     const { pubkey } = req.user;
-    const queryRunner = await this.transactionsService.start();
-    const transactions = await this.transactionsService.send(queryRunner, {
-      amount: body.amount,
-      from: pubkey,
-      to: body.to,
-    });
-    await this.transactionsService.finish(queryRunner);
-    return transactions;
+    const queryRunner = await this.transactionsService.open();
+    try {
+      const transactions = await this.transactionsService.send(queryRunner, {
+        amount: body.amount,
+        from: pubkey,
+        to: body.to,
+      });
+      await queryRunner.commitTransaction();
+      return transactions;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

@@ -38,22 +38,10 @@ export class WalletsService {
     };
   }
 
-  async save({
-    pubkey,
-    keystore,
-    mnemonic,
-    name,
-  }: {
-    pubkey: string;
-    keystore?: string;
-    mnemonic?: string;
-    name?: string;
-  }): Promise<void> {
+  async savePersonal({ pubkey, keystore }: NewWallet): Promise<void> {
     const newWallet = this.walletsRepository.create({
       pubkey,
       keystore,
-      mnemonic,
-      name,
     });
     await this.walletsRepository.save(newWallet);
   }

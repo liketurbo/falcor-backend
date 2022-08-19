@@ -1,39 +1,65 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EthersModule } from 'nestjs-ethers';
 import { DataSource, Repository } from 'typeorm';
 
 import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
+import appConfig from '../common/config/app.config';
 import {
   DATA_SOURCE,
+  STAKE_REPOSITORY,
+  TRANSACTION_REPOSITORY,
   WALLET_REPOSITORY,
 } from '../database/constants/db-ids.constants';
 import { DatabaseModule } from '../database/database.module';
-import { StakeProvider, WalletProvider } from '../database/database.providers';
+import {
+  StakeProvider,
+  TransactionProvider,
+  WalletProvider,
+} from '../database/database.providers';
+import { Stake } from '../database/entities/stake.entity';
+import { Transaction } from '../database/entities/transaction.entity';
 import { Wallet } from '../database/entities/wallet.entity';
+import { TransactionsModule } from '../transactions/transactions.module';
 import { WalletsController } from '../wallets/wallets.controller';
+import { WalletsModule } from '../wallets/wallets.module';
+import { WalletsService } from '../wallets/wallets.service';
+import { InvalidInterval } from './errors/staking.errors';
 import { StakingController } from './staking.controller';
 
 describe('StakingController', () => {
   let authService: AuthService;
   let dbConnection: DataSource;
   let stakingController: StakingController;
-  let walletsController: WalletsController;
+  let stakeRepository: Repository<Stake>;
+  let transactionRepository: Repository<Transaction>;
   let walletRepository: Repository<Wallet>;
+  let walletsService: WalletsService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AuthModule, DatabaseModule, EthersModule.forRoot()],
+      imports: [
+        AuthModule,
+        ConfigModule.forFeature(appConfig),
+        DatabaseModule,
+        EthersModule.forRoot(),
+        TransactionsModule,
+        WalletsModule,
+      ],
       controllers: [StakingController, WalletsController],
-      providers: [StakeProvider, WalletProvider],
+      providers: [StakeProvider, TransactionProvider, WalletProvider],
     }).compile();
 
     authService = module.get(AuthService);
     dbConnection = module.get<DataSource>(DATA_SOURCE);
     stakingController = module.get<StakingController>(StakingController);
-    walletsController = module.get<WalletsController>(WalletsController);
+    stakeRepository = module.get<Repository<Stake>>(STAKE_REPOSITORY);
+    transactionRepository = module.get<Repository<Transaction>>(
+      TRANSACTION_REPOSITORY,
+    );
     walletRepository = module.get<Repository<Wallet>>(WALLET_REPOSITORY);
+    walletsService = module.get<WalletsService>(WalletsService);
   });
 
   afterAll(async () => {
@@ -44,87 +70,48 @@ describe('StakingController', () => {
     expect(authService).toBeDefined();
     expect(dbConnection).toBeDefined();
     expect(stakingController).toBeDefined();
-    expect(walletsController).toBeDefined();
+    expect(stakeRepository).toBeDefined();
+    expect(transactionRepository).toBeDefined();
     expect(walletRepository).toBeDefined();
+    expect(walletsService).toBeDefined();
   });
 
   it('works only with certain intervals', async () => {
-    const res1 = await walletsController.createWallet({
-      password: '0000',
-    });
-    const pubkey = authService.validate(res1.accessToken);
-
-    await walletRepository.increment(
-      {
-        pubkey,
-      },
-      'balance',
-      10,
-    );
-    const res2 = await stakingController.createStake(
-      { user: { pubkey } },
-      {
-        amount: 10,
-        period: '6 mons',
-      },
-    );
-    expect(res2).toBe('Ok');
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    await walletsService.increaseBalance(draftWallet.pubkey, 10);
 
     await expect(
       stakingController.createStake(
-        { user: { pubkey } },
+        { user: { pubkey: draftWallet.pubkey } },
         {
           amount: 10,
           period: '01:02:03',
         },
       ),
-    ).rejects.toEqual(new BadRequestException('Invalid interval provided'));
-  });
-
-  it('only works with sufficient balance', async () => {
-    const res1 = await walletsController.createWallet({
-      password: '0000',
-    });
-    const pubkey = authService.validate(res1.accessToken);
-    await expect(
-      stakingController.createStake(
-        { user: { pubkey } },
-        {
-          amount: 10,
-          period: '3 mons',
-        },
-      ),
-    ).rejects.toEqual(new ForbiddenException('Insufficient balance'));
+    ).rejects.toBeInstanceOf(InvalidInterval);
   });
 
   it('created stake and decremented balance', async () => {
-    const res1 = await walletsController.createWallet({
-      password: '0000',
-    });
-    const pubkey = authService.validate(res1.accessToken);
+    const draftWallet = await walletsService.createDraft('0000');
+    await walletsService.savePersonal(draftWallet);
+    await walletsService.increaseBalance(draftWallet.pubkey, 10);
 
-    await walletRepository.increment(
-      {
-        pubkey,
-      },
-      'balance',
-      10,
-    );
-
-    const res2 = await stakingController.createStake(
-      { user: { pubkey } },
+    const createdStake = await stakingController.createStake(
+      { user: { pubkey: draftWallet.pubkey } },
       {
         amount: 5,
         period: '3 mons',
       },
     );
 
-    expect(res2).toBe('Ok');
-
-    const foundWallet = await walletRepository.findOneBy({
-      pubkey,
+    const wallet = await walletRepository.findOneBy({
+      pubkey: draftWallet.pubkey,
     });
-
-    expect(foundWallet.balance).toBe(5);
+    expect(wallet.balance).toBeLessThan(10);
+    const stake = await stakeRepository.findOneBy({
+      id: createdStake.id,
+    });
+    expect(stake).toBeTruthy();
   });
 });

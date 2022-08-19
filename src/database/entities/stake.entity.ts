@@ -25,6 +25,10 @@ export class Stake {
   @ApiProperty()
   period: IPostgresInterval;
 
+  @ManyToOne(() => Wallet, (wallet) => wallet)
+  @JoinColumn({ name: 'wallet_pubkey' })
+  wallet: Wallet;
+
   @ManyToOne(() => Wallet, (wallet) => wallet.stakes)
   @JoinColumn({ name: 'owner_pubkey' })
   owner: Wallet;

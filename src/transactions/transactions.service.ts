@@ -35,15 +35,11 @@ export class TransactionsService {
     private readonly walletsRepository: Repository<Wallet>,
   ) {}
 
-  async start() {
+  async open() {
     const queryRunner = this.dbConnection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     return queryRunner;
-  }
-
-  async finish(queryRunner: QueryRunner) {
-    await queryRunner.release();
   }
 
   async send(
@@ -56,7 +52,6 @@ export class TransactionsService {
     const receiver = await this.walletsRepository.findOneBy({ pubkey: to });
 
     if (!sender || !receiver) throw new NotFoundWallet();
-
     if (sender.balance < amount) throw new InsufficientBalance();
 
     const { leftAmount, commissionAmount } = this.calcCommission(amount);
@@ -111,13 +106,6 @@ export class TransactionsService {
       amount: number;
     },
   ) {
-    if (amount <= 0) throw new BadRequestException('Amount is not positive');
-
-    const sender = await this.walletsRepository.findOneBy({ pubkey: from });
-    if (!sender) throw new NotFoundWallet();
-
-    if (sender.balance < amount) throw new InsufficientBalance();
-
     const transactions: Transaction[] = [];
     const serviceWallets =
       this.config.get<AppVariables['serviceWallets']>('serviceWallets');
@@ -137,6 +125,12 @@ export class TransactionsService {
         await queryRunner.manager.increment(
           Wallet,
           { pubkey: wallet.pubkey },
+          'balance',
+          reward,
+        );
+        await queryRunner.manager.decrement(
+          Wallet,
+          { pubkey: from },
           'balance',
           reward,
         );
